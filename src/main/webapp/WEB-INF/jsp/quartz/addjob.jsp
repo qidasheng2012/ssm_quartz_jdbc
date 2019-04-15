@@ -25,7 +25,7 @@
 </head>
 
 <body style="background: beige; margin: 100px 300px 200px;">
-<form action="${pageContext.request.contextPath }/quartz/add" method="post">
+<form id="form" method="post">
     <h3>新增Trigger</h3>
     <hr/>
 
@@ -57,8 +57,8 @@
         <tr>
             <td></td>
             <td>
-                <button type="submit" style="border: 0;background-color: #428bca;">提交</button>
-                <button class="cancel" style="border: 0;background-color: #fff;">返回</button>
+                <input type="button"  onclick="commit()"  style="width:45px;border: 0;background-color: #7ED321;" value="提交"/>
+                <input type="button"  onclick="cancel()" style="width:45px;border: 0;background-color: #fff;" value="返回"/>
             </td>
         </tr>
     </table>
@@ -68,11 +68,34 @@
 
 <script type="text/javascript" src="${pageContext.request.contextPath}/static/js/jquery.min.js"></script>
 <script>
-    $(document).ready(function () {
-        $(".cancel").click(function () {
-            history.go(-1);
+    var url = "${pageContext.request.contextPath}";
+
+    // 返回
+    function cancel() {
+        window.location.href = url + "/quartz/listJob";
+    }
+
+    // 提交
+    function commit() {
+        $.ajax({
+            type: "POST",
+            dataType: "json",
+            url: "${pageContext.request.contextPath }/quartz/add" ,
+            data: $('#form').serialize(),
+            success: function (data) {
+                if (data.status = 'success') {
+                    alert("新增成功");
+                    window.location.href = url + "/quartz/listJob";
+                } else {
+                    alert("新增失败");
+                }
+            },
+            error : function() {
+                alert("异常！");
+            }
         });
-    });
+    }
+
 </script>
 
 

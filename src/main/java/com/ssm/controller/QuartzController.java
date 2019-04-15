@@ -3,6 +3,7 @@ package com.ssm.controller;
 import com.alibaba.fastjson.JSONObject;
 import com.ssm.model.JobEntity;
 import com.ssm.service.QuartzService;
+import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import java.util.*;
  */
 @Controller
 @RequestMapping("/quartz")
+@Slf4j
 public class QuartzController {
 
 	@Autowired
@@ -44,7 +46,7 @@ public class QuartzController {
 	}
 	
 	/**
-	 * 跳转到新增
+	 * 跳转到新增页面
 	 * 
 	 * @return
 	 * @throws SchedulerException
@@ -55,46 +57,53 @@ public class QuartzController {
 		return "quartz/addjob";
 	}
 
-	/**
-	 * 新增job
-	 * 
-	 * @return
-	 * @throws SchedulerException
-	 * @throws ClassNotFoundException 
-	 */
-	@RequestMapping(value="/add",method= RequestMethod.POST)
-	public String add(HttpServletRequest request, HttpServletResponse response) throws SchedulerException, ClassNotFoundException {
-		String jobName = request.getParameter("jobName");
-		String jobGroupName = request.getParameter("jobGroupName");
-		String triggerName = request.getParameter("triggerName");
-		String triggerGroupName = request.getParameter("triggerGroupName");
-		String clazz = request.getParameter("clazz");
-		Class cls = Class.forName(clazz);
-		String cron = request.getParameter("cron");
-		quartzService.addJob(jobName, jobGroupName, triggerName, triggerGroupName, cls, cron);
-		request.setAttribute("message", "添加任务成功!");
-		request.setAttribute("opName", "添加任务!");
-		return "redirect:listJob";
-	}
+    /**
+     * 新增job
+     *
+     * @return
+     * @throws SchedulerException
+     * @throws ClassNotFoundException
+     */
+    @RequestMapping(value="/add",method= RequestMethod.POST)
+    @ResponseBody
+    public String add(HttpServletRequest request, HttpServletResponse response) throws SchedulerException, ClassNotFoundException {
+        String jobName = request.getParameter("jobName");
+        String jobGroupName = request.getParameter("jobGroupName");
+        String triggerName = request.getParameter("triggerName");
+        String triggerGroupName = request.getParameter("triggerGroupName");
+        String clazz = request.getParameter("clazz");
+        Class cls = Class.forName(clazz);
+        String cron = request.getParameter("cron");
+
+		JSONObject json = new JSONObject();
+        try {
+            quartzService.addJob(jobName, jobGroupName, triggerName, triggerGroupName, cls, cron);
+			json.put("status", "success");
+        }catch (Exception e) {
+			json.put("status", "error");
+			log.error("add job error: {}", e);
+        }
+
+		return json.toJSONString();
+    }
+
 
 	/**
 	 * 跳转到编辑
-	 * 
+	 *
 	 * @return
 	 * @throws SchedulerException
-	 * @throws ClassNotFoundException 
+	 * @throws ClassNotFoundException
 	 */
 	@RequestMapping(value="/toEdit")
 	public String toEdit(HttpServletRequest request, HttpServletResponse response) throws SchedulerException {
-		
 		String jobName = request.getParameter("jobName");
 		String jobGroup = request.getParameter("jobGroup");
-		
+
 		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
 		JobDetail jd = quartzScheduler.getJobDetail(jobKey);
 		@SuppressWarnings("unchecked")
-		List<CronTrigger> triggers = (List<CronTrigger>) quartzScheduler
-				.getTriggersOfJob(jobKey);
+		List<CronTrigger> triggers = (List<CronTrigger>) quartzScheduler.getTriggersOfJob(jobKey);
 		CronTrigger trigger = triggers.get(0);
 		TriggerKey triggerKey = trigger.getKey();
 		String cron = trigger.getCronExpression();
@@ -108,7 +117,7 @@ public class QuartzController {
 
 		request.setAttribute("pd", pd);
 		request.setAttribute("msg", "edit");
-		
+
 		return "quartz/editjob";
 	}
 
@@ -120,6 +129,7 @@ public class QuartzController {
 	 * @throws ClassNotFoundException 
 	 */
 	@RequestMapping(value="/edit",method= RequestMethod.POST)
+	@ResponseBody
 	public String edit(HttpServletRequest request, HttpServletResponse response) throws SchedulerException, ClassNotFoundException {
 		String jobName = request.getParameter("jobName");
 		String jobGroupName = request.getParameter("jobGroupName");
@@ -134,15 +144,17 @@ public class QuartzController {
 		String oldtriggerName = request.getParameter("oldtriggerName");
 		String oldtriggerGroup = request.getParameter("oldtriggerGroup");
 		
-		boolean result = quartzService.modifyJobTime(oldjobName, oldjobGroup, oldtriggerName, oldtriggerGroup, 
+		boolean result = quartzService.modifyJobTime(oldjobName, oldjobGroup, oldtriggerName, oldtriggerGroup,
 				jobName, jobGroupName, triggerName, triggerGroupName, cron);
-		if(result){
-			request.setAttribute("message", "修改任务成功!");
-		}else{
-			request.setAttribute("message", "修改任务失败!");
+
+		JSONObject json = new JSONObject();
+		if (result) {
+			json.put("status", "success");
+		} else {
+			json.put("status", "error");
 		}
-		request.setAttribute("opName", "更新任务!");
-		return "redirect:listJob";
+
+		return json.toJSONString();
 	}
 
 	/**
@@ -157,7 +169,7 @@ public class QuartzController {
 		JSONObject json = new JSONObject();
 		
 		if(StringUtils.isEmpty(jobName) || StringUtils.isEmpty(jobGroupName)){
-			json.put("status", "wrong");
+			json.put("status", "error");
 		}else{
 			quartzService.pauseJob(jobName, jobGroupName);
 			json.put("status", "success");
@@ -178,7 +190,7 @@ public class QuartzController {
 		JSONObject json = new JSONObject();
 		
 		if(StringUtils.isEmpty(jobName) || StringUtils.isEmpty(jobGroupName)){
-			json.put("status", "wrong");
+			json.put("status", "error");
 		}else{
 			quartzService.resumeJob(jobName, jobGroupName);
 			json.put("status", "success");
@@ -203,7 +215,7 @@ public class QuartzController {
 		
 		if(StringUtils.isEmpty(jobName) || StringUtils.isEmpty(jobGroupName) ||
 				StringUtils.isEmpty(triggerName) || StringUtils.isEmpty(triggerGroupName) ){
-			json.put("status", "wrong");
+			json.put("status", "error");
 		}else{
 			 quartzService.removeJob(jobName, jobGroupName, triggerName, triggerGroupName);
 			 json.put("status", "success");
@@ -211,8 +223,12 @@ public class QuartzController {
 		
 		return json.toJSONString();
 	}
-	
-	
+
+	/**
+	 * 查询job信息
+	 * @return
+	 * @throws SchedulerException
+	 */
 	private List<JobEntity> getSchedulerJobInfo() throws SchedulerException {
 		List<JobEntity> jobInfos = new ArrayList<JobEntity>();
 		List<String> triggerGroupNames = quartzScheduler.getTriggerGroupNames();
