@@ -21,10 +21,10 @@ public interface QuartzService {
 	 * @exception
 	 * @since 1.0.0
 	 */
-	public void addJob(String jobName, String jobGroupName, String triggerName, String triggerGroupName, Class cls, String cron);
+	void addJob(String jobName, String jobGroupName, String triggerName, String triggerGroupName, Class cls, String cron);
 
 	/**
-	 *
+	 * 修改任务
 	 * @param oldjobName 原job name
 	 * @param oldjobGroup 原job group
 	 * @param oldtriggerName 原 trigger name
@@ -35,7 +35,7 @@ public interface QuartzService {
 	 * @param triggerGroup
 	 * @param cron
 	 */
-	public boolean modifyJobTime(String oldjobName, String oldjobGroup, String oldtriggerName, String oldtriggerGroup, String jobName, String jobGroup, String triggerName, String triggerGroup, String cron);
+	boolean modifyJobTime(String oldjobName, String oldjobGroup, String oldtriggerName, String oldtriggerGroup, String jobName, String jobGroup, String triggerName, String triggerGroup, String cron);
 
 	/**
 	 * 修改触发器调度时间
@@ -43,8 +43,7 @@ public interface QuartzService {
 	 * @param triggerGroupName  触发器组名称
 	 * @param cron cron表达式
 	 */
-	public void modifyJobTime(String triggerName,
-                              String triggerGroupName, String cron);
+	void modifyJobTime(String triggerName, String triggerGroupName, String cron);
 
 
 	/**
@@ -53,7 +52,7 @@ public interface QuartzService {
 	 * @param jobGroupName 任务组名称
 	 * @return
 	 */
-	public void pauseJob(String jobName, String jobGroupName);
+	void pauseJob(String jobName, String jobGroupName);
 
 	/**
 	 * 恢复指定的任务
@@ -61,7 +60,7 @@ public interface QuartzService {
 	 * @param jobGroupName 任务组名称
 	 * @return
 	 */
-	public void resumeJob(String jobName, String jobGroupName);
+	void resumeJob(String jobName, String jobGroupName);
 
 	/**
 	 * 删除指定组任务
@@ -70,17 +69,16 @@ public interface QuartzService {
 	 * @param triggerName 触发器名称
 	 * @param triggerGroupName 触发器组名称
 	 */
-	public void removeJob(String jobName, String jobGroupName,
-                          String triggerName, String triggerGroupName);
+	void removeJob(String jobName, String jobGroupName, String triggerName, String triggerGroupName);
 
 	
 	/**
 	 * 开始所有定时任务。启动调度器
 	 */
-	public void startSchedule();
+	void startSchedule();
 
 	/**
 	 * 关闭调度器
 	 */
-	public void shutdownSchedule();
+	void shutdownSchedule();
 }

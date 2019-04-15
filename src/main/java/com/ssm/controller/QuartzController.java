@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
 /**
- * quartzController
+ * 定时任务Controller
  */
 @Controller
 @RequestMapping("/quartz")
@@ -40,9 +40,62 @@ public class QuartzController {
 	 */
 	@RequestMapping(value="/listJob")
 	public String listJob(HttpServletRequest request, HttpServletResponse response) throws SchedulerException {
-		List<JobEntity> jobInfos = this.getSchedulerJobInfo();
+		List<JobEntity> jobInfos = getSchedulerJobInfo();
 		request.setAttribute("jobInfos", jobInfos);
 		return "quartz/listjob";
+	}
+
+	/**
+	 * 查询job信息
+	 * @return
+	 * @throws SchedulerException
+	 */
+	private List<JobEntity> getSchedulerJobInfo() throws SchedulerException {
+		List<JobEntity> jobInfos = new ArrayList<JobEntity>();
+
+		List<String> triggerGroupNames = quartzScheduler.getTriggerGroupNames();
+		for (String triggerGroupName : triggerGroupNames) {
+			Set<TriggerKey> triggerKeySet = quartzScheduler.getTriggerKeys(GroupMatcher.triggerGroupEquals(triggerGroupName));
+
+			for (TriggerKey triggerKey : triggerKeySet) {
+				Trigger t = quartzScheduler.getTrigger(triggerKey);
+				if (t instanceof CronTrigger) {
+					CronTrigger trigger = (CronTrigger) t;
+					JobKey jobKey = trigger.getJobKey();
+					JobDetail jd = quartzScheduler.getJobDetail(jobKey);
+					JobEntity jobInfo = new JobEntity();
+					jobInfo.setJobName(jobKey.getName());
+					jobInfo.setJobGroup(jobKey.getGroup());
+					jobInfo.setTriggerName(triggerKey.getName());
+					jobInfo.setTriggerGroupName(triggerKey.getGroup());
+					jobInfo.setCronExpr(trigger.getCronExpression());
+					jobInfo.setNextFireTime(trigger.getNextFireTime());
+					jobInfo.setPreviousFireTime(trigger.getPreviousFireTime());
+					jobInfo.setStartTime(trigger.getStartTime());
+					jobInfo.setEndTime(trigger.getEndTime());
+					jobInfo.setJobClass(jd.getJobClass().getCanonicalName());
+					// jobInfo.setDuration(Long.parseLong(jd.getDescription()));
+					Trigger.TriggerState triggerState = quartzScheduler.getTriggerState(trigger.getKey());
+					// NONE无,
+					// NORMAL正常,
+					// PAUSED暂停,
+					// COMPLETE完全,
+					// ERROR错误,
+					// BLOCKED阻塞
+					jobInfo.setJobStatus(triggerState.toString());
+
+					JobDataMap map = quartzScheduler.getJobDetail(jobKey).getJobDataMap();
+					if (null != map && map.size() != 0) {
+						jobInfo.setCount(Integer.parseInt((String) map.get("count")));
+						jobInfo.setJobDataMap(map);
+					} else {
+						jobInfo.setJobDataMap(new JobDataMap());
+					}
+					jobInfos.add(jobInfo);
+				}
+			}
+		}
+		return jobInfos;
 	}
 	
 	/**
@@ -52,8 +105,8 @@ public class QuartzController {
 	 * @throws SchedulerException
 	 * @throws ClassNotFoundException 
 	 */
-	@RequestMapping(value="/toAdd")
-	public String toAdd(HttpServletRequest request, HttpServletResponse response) throws SchedulerException {
+	@RequestMapping(value = "/toAdd")
+	public String toAdd() {
 		return "quartz/addjob";
 	}
 
@@ -66,7 +119,7 @@ public class QuartzController {
      */
     @RequestMapping(value="/add",method= RequestMethod.POST)
     @ResponseBody
-    public String add(HttpServletRequest request, HttpServletResponse response) throws SchedulerException, ClassNotFoundException {
+    public String add(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String jobName = request.getParameter("jobName");
         String jobGroupName = request.getParameter("jobGroupName");
         String triggerName = request.getParameter("triggerName");
@@ -107,6 +160,7 @@ public class QuartzController {
 		CronTrigger trigger = triggers.get(0);
 		TriggerKey triggerKey = trigger.getKey();
 		String cron = trigger.getCronExpression();
+
 		Map<String, String> pd = new HashMap<String, String>();
 		pd.put("jobName", jobKey.getName());
 		pd.put("jobGroup", jobKey.getGroup());
@@ -224,58 +278,4 @@ public class QuartzController {
 		return json.toJSONString();
 	}
 
-	/**
-	 * 查询job信息
-	 * @return
-	 * @throws SchedulerException
-	 */
-	private List<JobEntity> getSchedulerJobInfo() throws SchedulerException {
-		List<JobEntity> jobInfos = new ArrayList<JobEntity>();
-		List<String> triggerGroupNames = quartzScheduler.getTriggerGroupNames();
-		for (String triggerGroupName : triggerGroupNames) {
-			Set<TriggerKey> triggerKeySet = quartzScheduler
-					.getTriggerKeys(GroupMatcher
-							.triggerGroupEquals(triggerGroupName));
-			for (TriggerKey triggerKey : triggerKeySet) {
-				Trigger t = quartzScheduler.getTrigger(triggerKey);
-				if (t instanceof CronTrigger) {
-					CronTrigger trigger = (CronTrigger) t;
-					JobKey jobKey = trigger.getJobKey();
-					JobDetail jd = quartzScheduler.getJobDetail(jobKey);
-					JobEntity jobInfo = new JobEntity();
-					jobInfo.setJobName(jobKey.getName());
-					jobInfo.setJobGroup(jobKey.getGroup());
-					jobInfo.setTriggerName(triggerKey.getName());
-					jobInfo.setTriggerGroupName(triggerKey.getGroup());
-					jobInfo.setCronExpr(trigger.getCronExpression());
-					jobInfo.setNextFireTime(trigger.getNextFireTime());
-					jobInfo.setPreviousFireTime(trigger.getPreviousFireTime());
-					jobInfo.setStartTime(trigger.getStartTime());
-					jobInfo.setEndTime(trigger.getEndTime());
-					jobInfo.setJobClass(jd.getJobClass().getCanonicalName());
-					// jobInfo.setDuration(Long.parseLong(jd.getDescription()));
-					Trigger.TriggerState triggerState = quartzScheduler
-							.getTriggerState(trigger.getKey());
-					jobInfo.setJobStatus(triggerState.toString());// NONE无,
-																	// NORMAL正常,
-																	// PAUSED暂停,
-																	// COMPLETE完全,
-																	// ERROR错误,
-																	// BLOCKED阻塞
-					JobDataMap map = quartzScheduler.getJobDetail(jobKey)
-							.getJobDataMap();
-					if (null != map&&map.size() != 0) {
-						jobInfo.setCount(Integer.parseInt((String) map
-								.get("count")));
-						jobInfo.setJobDataMap(map);
-					} else {
-						jobInfo.setJobDataMap(new JobDataMap());
-					}
-					jobInfos.add(jobInfo);
-				}
-			}
-		}
-		return jobInfos;
-	}
-	
 }
