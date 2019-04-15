@@ -19,6 +19,9 @@
     <!-- 静态资源默认servlet配置 -->
     <mvc:default-servlet-handler/>
 
+    <!-- 对静态资源的访问 -->
+    <mvc:resources mapping="/static/**" location="/WEB-INF/static/"/>
+
     <!-- 配置jsp 显示ViewResolver -->
     <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
         <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>

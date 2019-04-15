@@ -61,9 +61,7 @@
     <tx:annotation-driven transaction-manager="transactionManager"/>
 
     <!-- =========JDBC版=========== -->
-    <!--
-        持久化数据配置，需要添加quartz.properties
-     -->
+    <!-- 持久化数据配置，需要添加quartz.properties -->
     <bean name="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
         <property name="dataSource" ref ="dataSource" />
         <property name="applicationContextSchedulerContextKey" value="applicationContextKey"/>
